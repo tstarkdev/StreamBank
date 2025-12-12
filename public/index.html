@@ -1,1 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamBank - Tu Banco de Streams</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- HLS.js para reproducir streams -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.10/dist/hls.min.js"></script>
+    <!-- Font Awesome para íconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header class="header">
+        <div class="logo-container">
+            <i class="fas fa-satellite-dish logo-icon"></i>
+            <h1 class="logo">Stream<span class="logo-highlight">Bank</span></h1>
+        </div>
+        <p class="tagline">Tu banco personal de streams de radio y TV</p>
+    </header>
 
+    <main class="main-container">
+        <!-- Panel Izquierdo: Radio -->
+        <aside class="panel radio-panel">
+            <div class="panel-header">
+                <i class="fas fa-radio panel-icon"></i>
+                <h2 class="panel-title">Emisoras de Radio</h2>
+                <div class="panel-controls">
+                    <button class="refresh-btn" id="refresh-radio" title="Actualizar lista">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button class="collapse-btn" data-panel="radio" title="Contraer/Expandir">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="panel-content" id="radio-content">
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Cargando emisoras...</p>
+                </div>
+                <!-- La lista de radio se cargará aquí con JavaScript -->
+            </div>
+        </aside>
+
+        <!-- Área Central: Reproductor -->
+        <section class="player-section">
+            <div class="player-container">
+                <div class="player-header">
+                    <h3 class="player-title">Reproductor</h3>
+                    <div class="player-info" id="player-info">
+                        <span>Selecciona un canal para comenzar</span>
+                    </div>
+                </div>
+                
+                <div class="video-container">
+                    <video id="stream-player" controls crossorigin="anonymous"></video>
+                    <div class="player-placeholder" id="player-placeholder">
+                        <i class="fas fa-play-circle"></i>
+                        <p>Selecciona un canal para reproducir</p>
+                    </div>
+                </div>
+                
+                <div class="player-controls">
+                    <button class="control-btn" id="play-btn" disabled>
+                        <i class="fas fa-play"></i> Reproducir
+                    </button>
+                    <button class="control-btn" id="pause-btn" disabled>
+                        <i class="fas fa-pause"></i> Pausar
+                    </button>
+                    <button class="control-btn" id="volume-up">
+                        <i class="fas fa-volume-up"></i> +
+                    </button>
+                    <button class="control-btn" id="volume-down">
+                        <i class="fas fa-volume-down"></i> -
+                    </button>
+                    <div class="volume-display">
+                        Volumen: <span id="volume-level">50%</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Panel Derecho: TV -->
+        <aside class="panel tv-panel">
+            <div class="panel-header">
+                <i class="fas fa-tv panel-icon"></i>
+                <h2 class="panel-title">Canales de TV</h2>
+                <div class="panel-controls">
+                    <button class="refresh-btn" id="refresh-tv" title="Actualizar lista">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button class="collapse-btn" data-panel="tv" title="Contraer/Expandir">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="panel-content" id="tv-content">
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Cargando canales...</p>
+                </div>
+                <!-- La lista de TV se cargará aquí con JavaScript -->
+            </div>
+        </aside>
+    </main>
+
+    <footer class="footer">
+        <p>StreamBank &copy; 2023 - Todos los derechos reservados</p>
+        <p class="footer-links">
+            <a href="https://www.instagram.com/tu_usuario" target="_blank" rel="noopener noreferrer">
+                <i class="fab fa-instagram"></i> Instagram
+            </a> |
+            <a href="#"><i class="fab fa-github"></i> GitHub</a> |
+            <a href="https://www.tstark.dev" target="_blank" rel="noopener noreferrer">
+                <i class="fas fa-code"></i> Desarrollado por T. Stark
+            </a>
+        </p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
