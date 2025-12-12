@@ -1,0 +1,21 @@
+#EXTM3U
+#PLAYLIST: Match FM 99.3 CDMX
+#EXTENC:UTF-8
+
+
+
+#EXTINF:-1 tvg-id="matchmx.fm" tgv-name="Match 99.3 CDMX (Canal 1)" tvg-logo"https://i.iheart.com/v3/re/new_assets/6294edb231e1c81edc5d1dfa" group-title="Pop", Match FM
+https://16603.live.streamtheworld.com/XHPOPFMAAC/HLS/09bb7cc0-61aa-4f79-97ac-e19a05ea33c8/0/playlist.m3u8
+
+#EXTINF:-1 tvg-id="matchmx.fm" tgv-name="Match 99.3 CDMX (Canal 2)" tvg-logo"https://i.iheart.com/v3/re/new_assets/6294edb231e1c81edc5d1dfa" group-title="Pop", Match FM
+https://16603.live.streamtheworld.com/XHPOPFMAAC/HLS/playlist.m3u8?aw_0_1st.playerid=iHeartRadioWebPlayer&aw_0_1st.skey=11692235588&clientType=web&companionAds=false&deviceName=web-desktop&dist=iheart&host=webapp.MX&listenerId=&playedFrom=157&pname=live_profile&profileId=11692235588&stationid=6251&terminalId=164&territory=MX
+
+#EXTINF:-1 tvg-id="matchmx.fm" tgv-name="Match 99.3 CDMX (Canal 3)" tvg-logo"https://i.iheart.com/v3/re/new_assets/6294edb231e1c81edc5d1dfa" group-title="Pop", Match FM
+https://playerservices.streamtheworld.com/api/livestream-redirect/XHPOPFMAAC.m3u8?aw_0_1st.playerid=iHeartRadioWebPlayer&aw_0_1st.skey=11692235588&clientType=web&companionAds=false&deviceName=web-desktop&dist=iheart&host=webapp.MX&listenerId=&playedFrom=157&pname=live_profile&profileId=11692235588&stationid=6251&terminalId=164&territory=MX
+
+
+
+
+
+
+
