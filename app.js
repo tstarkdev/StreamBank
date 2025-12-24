@@ -2,15 +2,7 @@
 const CONFIG = {
     basePath: window.location.pathname.includes('/streambank') ? '/streambank/' : '/',
     playlistsJson: 'playlists.json',
-    cacheKey: 'streambank_data',
-    defaultSettings: {
-        autoRefresh: true,
-        refreshInterval: 300000,
-        maxRetries: 3,
-        defaultVolume: 0.5,
-        enableCache: true,
-        cacheTime: 3600000
-    }
+    cacheKey: 'streambank_data_v2'
 };
 
 // Estado de la aplicación
@@ -21,9 +13,7 @@ const AppState = {
     currentStream: null,
     hlsPlayer: null,
     volume: 0.5,
-    isPlayerVisible: false,
-    settings: CONFIG.defaultSettings,
-    retryCount: 0
+    isPlayerVisible: false
 };
 
 // Inicializar cuando el DOM esté listo
@@ -33,237 +23,126 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initApp() {
     try {
-        console.log('🚀 Iniciando StreamBank...');
+        console.log('🎧 Iniciando StreamBank...');
         
-        // Cargar configuración
+        // Cargar configuración desde JSON
         await loadConfig();
         
         // Configurar todo
         setupPlayer();
         setupEventListeners();
         
-        // Cargar streams desde JSON
-        await loadStreamsFromConfig();
+        // Renderizar streams desde JSON
+        renderStreamsFromConfig();
         
-        // Aplicar configuraciones
-        applySettings();
-        
-        console.log('✅ StreamBank inicializado correctamente');
+        console.log('✅ StreamBank listo!');
         
     } catch (error) {
-        console.error('❌ Error inicializando la app:', error);
-        showError('Error al cargar la aplicación. Por favor, recarga la página.');
+        console.error('❌ Error inicializando:', error);
+        showError('Error al cargar. Recarga la página.');
+        
+        // Mostrar datos de ejemplo si hay error
+        showFallbackData();
     }
 }
 
 // Cargar configuración desde JSON
 async function loadConfig() {
     try {
-        // Verificar caché primero
-        const cached = getCachedData('config');
-        if (cached) {
-            console.log('📦 Usando datos en caché');
-            AppState.config = cached;
-            if (cached.settings) {
-                AppState.settings = { ...CONFIG.defaultSettings, ...cached.settings };
-            }
-            return;
-        }
-        
-        // Cargar desde el archivo JSON
-        const response = await fetch(`${CONFIG.basePath}${CONFIG.playlistsJson}?t=${Date.now()}`);
+        // Intentar cargar el JSON
+        const response = await fetch(`${CONFIG.basePath}${CONFIG.playlistsJson}?v=${Date.now()}`);
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
         
         AppState.config = await response.json();
-        
-        // Combinar configuraciones
-        if (AppState.config.settings) {
-            AppState.settings = { ...CONFIG.defaultSettings, ...AppState.config.settings };
-        }
-        
-        // Actualizar caché si está habilitado
-        if (AppState.settings.enableCache) {
-            cacheData('config', AppState.config);
-        }
-        
-        console.log('📄 Configuración cargada desde JSON');
+        console.log('📄 Configuración cargada:', AppState.config);
         
     } catch (error) {
-        console.error('Error cargando configuración:', error);
+        console.error('Error cargando JSON:', error);
         throw error;
     }
 }
 
-// Sistema de caché mejorado
-function getCachedData(key) {
-    if (!AppState.settings.enableCache) return null;
-    
-    try {
-        const fullKey = `${CONFIG.cacheKey}_${key}`;
-        const cached = localStorage.getItem(fullKey);
-        if (!cached) return null;
-        
-        const data = JSON.parse(cached);
-        const now = Date.now();
-        
-        // Verificar si el caché está expirado
-        if (now - data.timestamp > AppState.settings.cacheTime) {
-            localStorage.removeItem(fullKey);
-            return null;
-        }
-        
-        return data.value;
-    } catch (error) {
-        return null;
-    }
-}
-
-function cacheData(key, value) {
-    if (!AppState.settings.enableCache) return;
-    
-    try {
-        const fullKey = `${CONFIG.cacheKey}_${key}`;
-        const cacheData = {
-            value: value,
-            timestamp: Date.now()
-        };
-        localStorage.setItem(fullKey, JSON.stringify(cacheData));
-    } catch (error) {
-        console.warn('⚠️ No se pudo guardar en caché:', error);
-    }
-}
-
-// Cargar streams desde la configuración
-async function loadStreamsFromConfig() {
+// Renderizar streams desde la configuración JSON
+function renderStreamsFromConfig() {
     try {
         if (!AppState.config?.categories) {
-            throw new Error('Configuración no válida');
+            throw new Error('JSON sin estructura categories');
         }
         
-        // Actualizar títulos de los paneles
-        updatePanelTitles();
-        
-        // Mostrar estados de carga
-        showLoadingStates();
-        
-        // Procesar categorías
-        if (AppState.config.categories.radio) {
-            await processCategory('radio');
+        // Procesar radio
+        if (AppState.config.categories.radio && AppState.config.categories.radio.streams) {
+            AppState.radioStations = AppState.config.categories.radio.streams;
+            renderCategory('radio', AppState.radioStations, AppState.config.categories.radio);
         }
         
-        if (AppState.config.categories.tv) {
-            await processCategory('tv');
+        // Procesar TV
+        if (AppState.config.categories.tv && AppState.config.categories.tv.streams) {
+            AppState.tvChannels = AppState.config.categories.tv.streams;
+            renderCategory('tv', AppState.tvChannels, AppState.config.categories.tv);
         }
         
-        // Ocultar estados de carga
+        // Ocultar loaders
         hideLoadingStates();
         
-        console.log(`📊 Cargados: ${AppState.radioStations.length} radios, ${AppState.tvChannels.length} TVs`);
+        console.log(`📊 Radio: ${AppState.radioStations.length}, TV: ${AppState.tvChannels.length}`);
         
     } catch (error) {
-        console.error('Error cargando streams:', error);
-        showError('Error al cargar los streams');
+        console.error('Error renderizando streams:', error);
+        showError('Error mostrando streams');
         hideLoadingStates();
     }
 }
 
-// Actualizar títulos de los paneles
-function updatePanelTitles() {
-    if (!AppState.config) return;
-    
-    const radioPanel = document.querySelector('.radio-panel .panel-title');
-    const tvPanel = document.querySelector('.tv-panel .panel-title');
-    
-    if (radioPanel && AppState.config.categories.radio) {
-        radioPanel.textContent = AppState.config.categories.radio.name;
-    }
-    
-    if (tvPanel && AppState.config.categories.tv) {
-        tvPanel.textContent = AppState.config.categories.tv.name;
-    }
-}
-
-// Mostrar estados de carga
-function showLoadingStates() {
-    const loaders = document.querySelectorAll('.loading');
-    loaders.forEach(loader => {
-        loader.style.display = 'flex';
-    });
-}
-
-// Ocultar estados de carga
-function hideLoadingStates() {
-    const loaders = document.querySelectorAll('.loading');
-    loaders.forEach(loader => {
-        loader.style.display = 'none';
-    });
-}
-
-// Procesar una categoría
-async function processCategory(category) {
-    const categoryData = AppState.config.categories[category];
-    
-    // Obtener streams de la categoría
-    const streams = categoryData.streams || [];
-    
-    // Validar y formatear streams
-    const formattedStreams = streams.map(stream => ({
-        ...stream,
-        id: stream.id || `stream_${category}_${Date.now()}_${Math.random()}`,
-        type: category,
-        isLive: true,
-        lastUpdated: new Date().toISOString()
-    }));
-    
-    // Asignar a la categoría correspondiente
-    if (category === 'radio') {
-        AppState.radioStations = formattedStreams;
-        renderStreams('radio', formattedStreams, categoryData);
-    } else if (category === 'tv') {
-        AppState.tvChannels = formattedStreams;
-        renderStreams('tv', formattedStreams, categoryData);
-    }
-}
-
-// Renderizar streams en un panel
-function renderStreams(category, streams, categoryData) {
+// Renderizar una categoría
+function renderCategory(category, streams, categoryData) {
     const container = document.getElementById(`${category}-content`);
     
     if (!container) {
-        console.error(`Contenedor ${category}-content no encontrado`);
+        console.error(`Contenedor no encontrado: ${category}-content`);
         return;
     }
     
-    if (streams.length === 0) {
+    if (!streams || streams.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-${category === 'radio' ? 'radio' : 'tv'}"></i>
-                <p>No hay ${category === 'radio' ? 'emisoras' : 'canales'} disponibles</p>
-                <button class="retry-btn" onclick="retryLoad('${category}')">
-                    <i class="fas fa-redo"></i> Reintentar
-                </button>
+                <p>No hay ${category === 'radio' ? 'emisoras' : 'canales'}</p>
             </div>
         `;
         return;
     }
     
-    let html = '<div class="streams-grid">';
+    const color = categoryData.color || (category === 'radio' ? '#2ecc71' : '#e74c3c');
+    const icon = categoryData.icon || (category === 'radio' ? 'fas fa-radio' : 'fas fa-tv');
+    const categoryName = categoryData.name || (category === 'radio' ? 'Radio' : 'TV');
+    
+    let html = `
+        <div class="category-header">
+            <h4><i class="${icon}"></i> ${categoryName}</h4>
+            <span class="stream-count">${streams.length} ${category === 'radio' ? 'emisoras' : 'canales'}</span>
+        </div>
+        <div class="streams-grid">
+    `;
     
     streams.forEach((stream, index) => {
-        const color = categoryData.color || (category === 'radio' ? '#2ecc71' : '#e74c3c');
-        const icon = categoryData.icon || (category === 'radio' ? 'fas fa-radio' : 'fas fa-tv');
+        // Asegurar que el stream tenga un ID único
+        const streamId = stream.id || `stream_${category}_${index}_${Date.now()}`;
         
         html += `
             <div class="stream-card ${category}-card" 
-                 data-id="${stream.id}"
+                 data-id="${streamId}"
+                 data-index="${index}"
+                 data-type="${category}"
                  style="border-left-color: ${color}">
+                
                 <div class="card-header">
                     <div class="stream-logo">
                         ${stream.logo ? 
-                            `<img src="${stream.logo}" alt="${stream.name}" onerror="this.src='https://via.placeholder.com/40/3498db/ffffff?text=${stream.name.charAt(0)}'">` :
+                            `<img src="${stream.logo}" alt="${stream.name}" 
+                                  onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIGZpbGw9IiMzNDk4REIiIHJ4PSI4Ii8+PHRleHQgeD0iMjAiIHk9IjIwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiNGRkYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj4${btoa(stream.name.charAt(0)).slice(0,10)}</dGV4dD48L3N2Zz4=';">` :
                             `<i class="${icon}"></i>`
                         }
                     </div>
@@ -272,6 +151,7 @@ function renderStreams(category, streams, categoryData) {
                         ${stream.genre ? `<span class="stream-genre">${stream.genre}</span>` : ''}
                     </div>
                 </div>
+                
                 <div class="card-body">
                     ${stream.description ? `<p class="stream-description">${stream.description}</p>` : ''}
                     
@@ -281,16 +161,9 @@ function renderStreams(category, streams, categoryData) {
                         ${stream.group ? `<span class="stream-group">${stream.group}</span>` : ''}
                     </div>
                     
-                    <div class="stream-actions">
-                        <button class="play-btn" data-index="${index}" data-type="${category}">
-                            <i class="fas fa-play"></i> ${category === 'radio' ? 'Escuchar' : 'Ver'}
-                        </button>
-                        ${stream.backupUrls && stream.backupUrls.length > 0 ? 
-                            `<button class="backup-btn" title="Usar fuente alternativa" onclick="useBackupSource('${stream.id}')">
-                                <i class="fas fa-exchange-alt"></i>
-                            </button>` : ''
-                        }
-                    </div>
+                    <button class="play-btn" onclick="playStream(${index}, '${category}')">
+                        <i class="fas fa-play"></i> ${category === 'radio' ? 'Escuchar' : 'Ver'}
+                    </button>
                 </div>
             </div>
         `;
@@ -303,13 +176,8 @@ function renderStreams(category, streams, categoryData) {
 // Obtener bandera de país
 function getCountryFlag(countryCode) {
     const flags = {
-        'MX': '🇲🇽',
-        'US': '🇺🇸',
-        'ES': '🇪🇸',
-        'AR': '🇦🇷',
-        'CO': '🇨🇴',
-        'PE': '🇵🇪',
-        'CL': '🇨🇱'
+        'MX': '🇲🇽', 'US': '🇺🇸', 'ES': '🇪🇸', 'AR': '🇦🇷',
+        'CO': '🇨🇴', 'PE': '🇵🇪', 'CL': '🇨🇱', 'BR': '🇧🇷'
     };
     return flags[countryCode] || '🌐';
 }
@@ -319,111 +187,63 @@ function setupPlayer() {
     const videoPlayer = document.getElementById('stream-player');
     
     if (!videoPlayer) {
-        console.error('Reproductor de video no encontrado');
+        console.error('Reproductor no encontrado');
         return;
     }
     
     // Configurar volumen inicial
-    videoPlayer.volume = AppState.volume = AppState.settings.defaultVolume;
+    videoPlayer.volume = AppState.volume;
     updateVolumeDisplay();
     
     if (Hls.isSupported()) {
         AppState.hlsPlayer = new Hls({
             enableWorker: true,
             lowLatencyMode: true,
-            backBufferLength: 90,
-            maxBufferLength: 30,
-            maxMaxBufferLength: 60,
-            maxBufferSize: 60 * 1000 * 1000
+            backBufferLength: 90
         });
         
         AppState.hlsPlayer.attachMedia(videoPlayer);
         
         AppState.hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
-            console.log('✅ Stream listo para reproducir');
-            AppState.retryCount = 0;
+            console.log('✅ Stream listo');
         });
         
         AppState.hlsPlayer.on(Hls.Events.ERROR, (event, data) => {
             console.error('❌ Error HLS:', data);
             if (data.fatal) {
-                handleStreamError(data.type);
+                handleStreamError();
             }
         });
         
     } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
-        console.log('🍎 Usando soporte nativo HLS (Safari)');
-    } else {
-        console.warn('⚠️ HLS no soportado en este navegador');
+        console.log('🍎 Safari nativo HLS');
     }
 }
 
-// Manejar errores de stream
-function handleStreamError(errorType) {
-    if (AppState.retryCount >= AppState.settings.maxRetries) {
-        showError('No se pudo conectar al stream después de varios intentos');
-        return;
-    }
+// Manejar error de stream
+function handleStreamError() {
+    showError('Error en el stream. Intenta otro canal.');
     
-    AppState.retryCount++;
-    
-    switch(errorType) {
-        case Hls.ErrorTypes.NETWORK_ERROR:
-            console.log(`🔄 Reintentando conexión (${AppState.retryCount}/${AppState.settings.maxRetries})`);
-            setTimeout(() => {
-                if (AppState.hlsPlayer) {
-                    AppState.hlsPlayer.startLoad();
-                }
-            }, 1000 * AppState.retryCount);
-            break;
-            
-        case Hls.ErrorTypes.MEDIA_ERROR:
-            console.log('🔄 Recuperando error de media');
-            if (AppState.hlsPlayer) {
-                AppState.hlsPlayer.recoverMediaError();
-            }
-            break;
-            
-        default:
-            console.error('❌ Error fatal, no se puede recuperar');
-            showError('Error en el stream. Intenta con otro canal.');
-            if (AppState.hlsPlayer) {
-                AppState.hlsPlayer.destroy();
-            }
-            break;
+    // Si hay backup URLs en el stream actual, intentar la primera
+    if (AppState.currentStream?.backupUrls?.length > 0) {
+        setTimeout(() => {
+            useBackupSource(0);
+        }, 2000);
     }
 }
 
 // Configurar event listeners
 function setupEventListeners() {
-    // Delegación de eventos para los botones de play
-    document.addEventListener('click', (e) => {
-        const playBtn = e.target.closest('.play-btn');
-        if (playBtn) {
-            const index = parseInt(playBtn.dataset.index);
-            const type = playBtn.dataset.type;
-            playStream(index, type);
-            return;
-        }
-        
-        // Botones de refrescar
-        if (e.target.closest('#refresh-radio')) {
-            refreshCategory('radio');
-            return;
-        }
-        
-        if (e.target.closest('#refresh-tv')) {
-            refreshCategory('tv');
-            return;
-        }
-        
-        // Botones de colapsar
-        const collapseBtn = e.target.closest('.collapse-btn');
-        if (collapseBtn) {
-            const panel = collapseBtn.dataset.panel;
+    // Botones de refresh
+    document.getElementById('refresh-radio')?.addEventListener('click', () => refreshCategory('radio'));
+    document.getElementById('refresh-tv')?.addEventListener('click', () => refreshCategory('tv'));
+    
+    // Botones de colapsar
+    document.querySelectorAll('.collapse-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const panel = this.dataset.panel;
             togglePanel(panel);
-            return;
-        }
+        });
     });
     
     // Controles del reproductor
@@ -433,44 +253,19 @@ function setupEventListeners() {
     const volumeDownBtn = document.getElementById('volume-down');
     const videoPlayer = document.getElementById('stream-player');
     
-    if (playBtn) playBtn.addEventListener('click', handlePlay);
-    if (pauseBtn) pauseBtn.addEventListener('click', handlePause);
+    if (playBtn) playBtn.addEventListener('click', () => videoPlayer?.play());
+    if (pauseBtn) pauseBtn.addEventListener('click', () => videoPlayer?.pause());
     if (volumeUpBtn) volumeUpBtn.addEventListener('click', volumeUp);
     if (volumeDownBtn) volumeDownBtn.addEventListener('click', volumeDown);
     
     if (videoPlayer) {
         videoPlayer.addEventListener('play', updatePlayerControls);
         videoPlayer.addEventListener('pause', updatePlayerControls);
-        videoPlayer.addEventListener('volumechange', updateVolumeFromPlayer);
-        videoPlayer.addEventListener('error', handlePlayerError);
-    }
-    
-    // Refresco automático si está habilitado
-    if (AppState.settings.autoRefresh) {
-        setInterval(() => {
-            refreshAll();
-        }, AppState.settings.refreshInterval);
+        videoPlayer.addEventListener('volumechange', updateVolumeDisplay);
     }
 }
 
-// Controladores de eventos del reproductor
-function handlePlay() {
-    const videoPlayer = document.getElementById('stream-player');
-    if (videoPlayer && videoPlayer.paused && AppState.currentStream) {
-        videoPlayer.play().catch(e => {
-            console.error('Error al reproducir:', e);
-            showError('Error al reproducir el stream');
-        });
-    }
-}
-
-function handlePause() {
-    const videoPlayer = document.getElementById('stream-player');
-    if (videoPlayer && !videoPlayer.paused) {
-        videoPlayer.pause();
-    }
-}
-
+// Control de volumen
 function volumeUp() {
     AppState.volume = Math.min(1, AppState.volume + 0.1);
     updateVolume();
@@ -489,30 +284,19 @@ function updateVolume() {
     }
 }
 
-function updateVolumeFromPlayer() {
+function updateVolumeDisplay() {
     const videoPlayer = document.getElementById('stream-player');
-    if (videoPlayer) {
-        AppState.volume = videoPlayer.volume;
-        updateVolumeDisplay();
-    }
-}
-
-function handlePlayerError(e) {
-    console.error('Error del reproductor:', e);
+    const volumeLevel = document.getElementById('volume-level');
     
-    // Si hay backup URLs, intentar con la primera
-    if (AppState.currentStream?.backupUrls?.length > 0) {
-        showError('Error en la fuente principal. Intentando con alternativa...');
-        setTimeout(() => {
-            useBackupSource(AppState.currentStream.id, 0);
-        }, 1000);
-    } else {
-        showError('Error al reproducir el stream');
+    if (volumeLevel && videoPlayer) {
+        AppState.volume = videoPlayer.volume;
+        const percentage = Math.round(AppState.volume * 100);
+        volumeLevel.textContent = `${percentage}%`;
     }
 }
 
-// Reproducir un stream
-function playStream(index, type) {
+// Reproducir stream (función global)
+window.playStream = function(index, type) {
     const streams = type === 'radio' ? AppState.radioStations : AppState.tvChannels;
     
     if (index < 0 || index >= streams.length) {
@@ -522,17 +306,15 @@ function playStream(index, type) {
     
     const stream = streams[index];
     AppState.currentStream = stream;
-    AppState.retryCount = 0;
     
     // Actualizar UI
     updatePlayerInfo(stream);
     showPlayer();
     loadStream(stream.url);
-    highlightSelectedCard(stream.id);
+    highlightSelectedCard(stream.id || `stream_${type}_${index}`);
     
-    // Guardar historial
-    saveToHistory(stream);
-}
+    console.log(`▶️ Reproduciendo: ${stream.name}`);
+};
 
 // Actualizar información del reproductor
 function updatePlayerInfo(stream) {
@@ -544,7 +326,6 @@ function updatePlayerInfo(stream) {
                 <div class="stream-details">
                     ${stream.genre ? `<span>${stream.genre}</span>` : ''}
                     ${stream.quality ? `<span>• ${stream.quality}</span>` : ''}
-                    ${stream.country ? `<span>• ${getCountryFlag(stream.country)}</span>` : ''}
                 </div>
             </div>
         `;
@@ -556,44 +337,41 @@ function showPlayer() {
     const placeholder = document.getElementById('player-placeholder');
     const videoPlayer = document.getElementById('stream-player');
     
-    if (placeholder && videoPlayer && !AppState.isPlayerVisible) {
-        placeholder.style.opacity = '0.5';
-        setTimeout(() => {
-            placeholder.style.display = 'none';
-            videoPlayer.style.display = 'block';
-            AppState.isPlayerVisible = true;
-        }, 300);
+    if (placeholder && videoPlayer) {
+        placeholder.style.display = 'none';
+        videoPlayer.style.display = 'block';
+        AppState.isPlayerVisible = true;
     }
 }
 
-// Cargar stream en el reproductor
+// Cargar stream
 function loadStream(url) {
     const videoPlayer = document.getElementById('stream-player');
     
     if (!videoPlayer) return;
     
-    console.log(`▶️ Cargando stream: ${url}`);
+    console.log(`📡 Cargando: ${url}`);
     
-    // Detener reproducción actual
-    videoPlayer.pause();
+    // Limpiar fuente anterior
     videoPlayer.src = '';
     
     if (Hls.isSupported() && AppState.hlsPlayer) {
         AppState.hlsPlayer.loadSource(url);
         AppState.hlsPlayer.once(Hls.Events.MANIFEST_PARSED, () => {
             videoPlayer.play().catch(e => {
-                console.error('Error autoplay:', e);
+                console.error('Autoplay bloqueado:', e);
+                showError('Haz clic en Reproducir para comenzar');
             });
         });
     } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
         videoPlayer.src = url;
         videoPlayer.play().catch(e => {
-            console.error('Error autoplay Safari:', e);
+            console.error('Autoplay Safari bloqueado:', e);
         });
     } else {
         videoPlayer.src = url;
         videoPlayer.play().catch(e => {
-            console.error('Error autoplay:', e);
+            console.error('Autoplay bloqueado:', e);
         });
     }
     
@@ -605,39 +383,16 @@ function loadStream(url) {
 }
 
 // Usar fuente de respaldo
-window.useBackupSource = function(streamId, backupIndex = 0) {
-    const stream = [...AppState.radioStations, ...AppState.tvChannels].find(s => s.id === streamId);
-    
-    if (!stream || !stream.backupUrls || backupIndex >= stream.backupUrls.length) {
-        showError('No hay fuentes alternativas disponibles');
+window.useBackupSource = function(backupIndex = 0) {
+    if (!AppState.currentStream?.backupUrls || backupIndex >= AppState.currentStream.backupUrls.length) {
+        showError('No hay fuentes alternativas');
         return;
     }
     
-    const backupUrl = stream.backupUrls[backupIndex];
-    console.log(`🔄 Usando fuente alternativa ${backupIndex + 1}`);
-    
-    showError(`Probando fuente alternativa ${backupIndex + 1}...`);
-    
-    // Actualizar URL temporalmente
-    const originalUrl = stream.url;
-    stream.url = backupUrl;
+    const backupUrl = AppState.currentStream.backupUrls[backupIndex];
+    console.log(`🔄 Probando fuente alternativa ${backupIndex + 1}`);
     
     loadStream(backupUrl);
-    
-    // Verificar si funciona después de 5 segundos
-    setTimeout(() => {
-        const videoPlayer = document.getElementById('stream-player');
-        if (videoPlayer.error || videoPlayer.paused) {
-            // Intentar con la siguiente fuente alternativa
-            if (backupIndex + 1 < stream.backupUrls.length) {
-                useBackupSource(streamId, backupIndex + 1);
-            } else {
-                // Volver a la original si ninguna funciona
-                stream.url = originalUrl;
-                showError('Ninguna fuente alternativa funciona');
-            }
-        }
-    }, 5000);
 };
 
 // Actualizar controles del reproductor
@@ -646,20 +401,9 @@ function updatePlayerControls() {
     const playBtn = document.getElementById('play-btn');
     
     if (videoPlayer && playBtn) {
-        if (videoPlayer.paused) {
-            playBtn.innerHTML = '<i class="fas fa-play"></i> Reproducir';
-        } else {
-            playBtn.innerHTML = '<i class="fas fa-play"></i> Reproduciendo';
-        }
-    }
-}
-
-// Actualizar display de volumen
-function updateVolumeDisplay() {
-    const volumeLevel = document.getElementById('volume-level');
-    if (volumeLevel) {
-        const percentage = Math.round(AppState.volume * 100);
-        volumeLevel.textContent = `${percentage}%`;
+        playBtn.innerHTML = videoPlayer.paused ? 
+            '<i class="fas fa-play"></i> Reproducir' : 
+            '<i class="fas fa-play"></i> Reproduciendo';
     }
 }
 
@@ -676,35 +420,11 @@ function highlightSelectedCard(streamId) {
     }
 }
 
-// Guardar en historial
-function saveToHistory(stream) {
-    try {
-        const history = JSON.parse(localStorage.getItem('streambank_history') || '[]');
-        
-        // Evitar duplicados
-        const existingIndex = history.findIndex(item => item.id === stream.id);
-        if (existingIndex !== -1) {
-            history.splice(existingIndex, 1);
-        }
-        
-        // Agregar al inicio
-        history.unshift({
-            id: stream.id,
-            name: stream.name,
-            type: stream.type,
-            timestamp: new Date().toISOString(),
-            url: stream.url
-        });
-        
-        // Mantener solo los últimos 50
-        if (history.length > 50) {
-            history.pop();
-        }
-        
-        localStorage.setItem('streambank_history', JSON.stringify(history));
-    } catch (error) {
-        console.warn('No se pudo guardar en historial:', error);
-    }
+// Ocultar estados de carga
+function hideLoadingStates() {
+    document.querySelectorAll('.loading').forEach(el => {
+        el.style.display = 'none';
+    });
 }
 
 // Refrescar categoría
@@ -717,17 +437,11 @@ function refreshCategory(category) {
                 <p>Actualizando...</p>
             </div>
         `;
+        
+        setTimeout(() => {
+            renderStreamsFromConfig();
+        }, 500);
     }
-    
-    setTimeout(() => {
-        processCategory(category);
-    }, 500);
-}
-
-// Refrescar todo
-function refreshAll() {
-    console.log('🔄 Refrescando streams...');
-    loadStreamsFromConfig();
 }
 
 // Alternar panel
@@ -746,65 +460,82 @@ function togglePanel(panel) {
     }
 }
 
-// Aplicar configuraciones
-function applySettings() {
-    // Aplicar volumen
-    const videoPlayer = document.getElementById('stream-player');
-    if (videoPlayer) {
-        videoPlayer.volume = AppState.volume;
-    }
+// Mostrar datos de ejemplo si hay error
+function showFallbackData() {
+    console.log('⚠️ Mostrando datos de ejemplo');
+    
+    const fallbackConfig = {
+        categories: {
+            radio: {
+                name: "Emisoras de Radio",
+                icon: "fas fa-radio",
+                color: "#2ecc71",
+                streams: [
+                    {
+                        id: "radio_001",
+                        name: "Match FM 99.3",
+                        description: "Música pop en vivo desde CDMX",
+                        url: "https://playerservices.streamtheworld.com/api/livestream-redirect/XHPOPFMAAC.m3u8",
+                        genre: "Pop",
+                        quality: "128kbps",
+                        country: "MX"
+                    }
+                ]
+            },
+            tv: {
+                name: "Canales de TV",
+                icon: "fas fa-tv",
+                color: "#e74c3c",
+                streams: [
+                    {
+                        id: "tv_001",
+                        name: "Canal 5",
+                        description: "Entretenimiento familiar",
+                        url: "http://104.238.205.28:8989/278329_.m3u8",
+                        genre: "Entretenimiento",
+                        quality: "720p",
+                        country: "MX",
+                        group: "TV Abierta"
+                    }
+                ]
+            }
+        }
+    };
+    
+    AppState.config = fallbackConfig;
+    renderStreamsFromConfig();
 }
 
 // Mostrar error
 function showError(message) {
-    // Remover notificaciones anteriores
-    document.querySelectorAll('.error-notification').forEach(el => el.remove());
-    
+    // Crear notificación
     const errorDiv = document.createElement('div');
     errorDiv.className = 'error-notification';
     errorDiv.innerHTML = `
-        <i class="fas fa-exclamation-triangle"></i>
+        <i class="fas fa-exclamation-circle"></i>
         <span>${message}</span>
     `;
     
     document.body.appendChild(errorDiv);
     
+    // Remover después de 3 segundos
     setTimeout(() => {
         errorDiv.style.opacity = '0';
         setTimeout(() => errorDiv.remove(), 300);
     }, 3000);
 }
 
-// Función global para reintentar
-window.retryLoad = function(category) {
-    refreshCategory(category);
-};
-
-// Función global para forzar recarga
-window.refreshStreamBank = function() {
-    localStorage.removeItem(`${CONFIG.cacheKey}_config`);
-    location.reload();
-};
-
 // Función global para debug
 window.debugStreamBank = function() {
-    console.log('=== StreamBank Debug ===');
+    console.log('=== DEBUG StreamBank ===');
     console.log('Config:', AppState.config);
-    console.log('Radio Stations:', AppState.radioStations);
-    console.log('TV Channels:', AppState.tvChannels);
-    console.log('Current Stream:', AppState.currentStream);
-    console.log('Settings:', AppState.settings);
-    console.log('=======================');
+    console.log('Radio:', AppState.radioStations);
+    console.log('TV:', AppState.tvChannels);
+    console.log('Current:', AppState.currentStream);
+    console.log('========================');
 };
 
-// Función global para obtener estadísticas
-window.getStats = function() {
-    return {
-        totalRadio: AppState.radioStations.length,
-        totalTV: AppState.tvChannels.length,
-        currentStream: AppState.currentStream?.name,
-        volume: Math.round(AppState.volume * 100),
-        cacheEnabled: AppState.settings.enableCache,
-        version: AppState.config?.version || '1.0'
-    };
+// Función global para refrescar
+window.refreshAll = function() {
+    location.reload();
 };
