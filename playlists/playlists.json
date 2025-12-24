@@ -1,0 +1,139 @@
+{
+  "lastUpdated": "2025-01-15T10:30:00Z",
+  "version": "2.0",
+  "categories": {
+    "radio": {
+      "name": "Emisoras de Radio",
+      "icon": "fas fa-radio",
+      "color": "#2ecc71",
+      "streams": [
+        {
+          "id": "radio_001",
+          "name": "Match FM 99.3 CDMX",
+          "description": "Música pop y éxitos contemporáneos",
+          "url": "https://16603.live.streamtheworld.com/XHPOPFMAAC/HLS/09bb7cc0-61aa-4f79-97ac-e19a05ea33c8/0/playlist.m3u8",
+          "logo": "https://i.iheart.com/v3/re/new_assets/6294edb231e1c81edc5d1dfa",
+          "genre": "Pop",
+          "quality": "128kbps",
+          "country": "MX",
+          "backupUrls": [
+            "https://16603.live.streamtheworld.com/XHPOPFMAAC/HLS/playlist.m3u8",
+            "https://playerservices.streamtheworld.com/api/livestream-redirect/XHPOPFMAAC.m3u8"
+          ]
+        },
+        {
+          "id": "radio_002",
+          "name": "La Capa Roja FM",
+          "description": "Radio alternativa y música independiente",
+          "url": "https://stream.radio.co/s8d4b6f8b5/listen",
+          "logo": "https://example.com/radio2-logo.jpg",
+          "genre": "Alternativa",
+          "quality": "192kbps",
+          "country": "ES"
+        },
+        {
+          "id": "radio_003",
+          "name": "Radio Nacional MX",
+          "description": "Noticias y programación cultural",
+          "url": "https://live.radio.nacional.mx:8443/live",
+          "logo": "https://example.com/radio3-logo.jpg",
+          "genre": "Noticias",
+          "quality": "96kbps",
+          "country": "MX"
+        }
+      ]
+    },
+    "tv": {
+      "name": "Canales de TV",
+      "icon": "fas fa-tv",
+      "color": "#e74c3c",
+      "streams": [
+        {
+          "id": "tv_001",
+          "name": "Canal 5",
+          "description": "Entretenimiento familiar",
+          "url": "http://104.238.205.28:8989/278329_.m3u8",
+          "logo": "https://example.com/canal5-logo.png",
+          "genre": "Entretenimiento",
+          "quality": "720p",
+          "country": "MX",
+          "group": "TV Abierta"
+        },
+        {
+          "id": "tv_002",
+          "name": "Azteca Uno",
+          "description": "Señal principal de TV Azteca",
+          "url": "https://mdstrm.com/live-stream-playlist/609b243156cca108312822a6.m3u8",
+          "logo": "https://example.com/azteca1-logo.png",
+          "genre": "General",
+          "quality": "720p",
+          "country": "MX",
+          "group": "TV Abierta"
+        },
+        {
+          "id": "tv_003",
+          "name": "Azteca 7",
+          "description": "Deportes y entretenimiento",
+          "url": "https://mdstrm.com/live-stream-playlist/609ad46a7a441137107d7a81.m3u8",
+          "logo": "https://example.com/azteca7-logo.png",
+          "genre": "Deportes",
+          "quality": "1080p",
+          "country": "MX",
+          "group": "TV Abierta"
+        },
+        {
+          "id": "tv_004",
+          "name": "Comedy Central - South Park",
+          "description": "Programación de Comedy Central",
+          "url": "https://stitcher.pluto.tv/stitch/hls/channel/609ae5cd48d3200007b0a98e/master.m3u8",
+          "logo": "https://example.com/comedycentral-logo.png",
+          "genre": "Comedia",
+          "quality": "720p",
+          "country": "US",
+          "group": "Entretenimiento"
+        },
+        {
+          "id": "tv_005",
+          "name": "Las Estrellas",
+          "description": "Señal principal de Televisa",
+          "url": "https://channel01-onlymex.akamaized.net/hls/live/2022749/event01/index.m3u8",
+          "logo": "https://example.com/lasestrellas-logo.png",
+          "genre": "General",
+          "quality": "1080p",
+          "country": "MX",
+          "group": "TV Abierta"
+        },
+        {
+          "id": "tv_006",
+          "name": "Las Estrellas +1",
+          "description": "Señal con una hora de retraso",
+          "url": "https://linear-414.frequency.stream/mt/studio/414/hls/master/playlist.m3u8",
+          "logo": "https://example.com/lasestrellas-logo.png",
+          "genre": "General",
+          "quality": "1080p",
+          "country": "MX",
+          "group": "TV Abierta"
+        },
+        {
+          "id": "tv_007",
+          "name": "Las Estrellas +2",
+          "description": "Señal con dos horas de retraso",
+          "url": "https://linear-415.frequency.stream/mt/studio/415/hls/master/playlist.m3u8",
+          "logo": "https://example.com/lasestrellas-logo.png",
+          "genre": "General",
+          "quality": "1080p",
+          "country": "MX",
+          "group": "TV Abierta"
+        }
+      ]
+    }
+  },
+  "settings": {
+    "autoRefresh": true,
+    "refreshInterval": 300000,
+    "maxRetries": 3,
+    "defaultVolume": 0.5,
+    "enableCache": true,
+    "cacheTime": 3600000
+  }
+}
