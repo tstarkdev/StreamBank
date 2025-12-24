@@ -1,6 +1,6 @@
 # StreamBank
 
-
+```
 StreamBank/
 ├── playlists/               # Carpeta para las listas IPTV puras
 │   ├── radio/
@@ -15,3 +15,4 @@ StreamBank/
 │   ├── styles.css
 │   └── app.js
 └── README.md
+```
