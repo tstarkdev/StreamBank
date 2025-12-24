@@ -9,10 +9,6 @@ StreamBank/
 │   ├── tv/
 │   │   ├── canales_generales.m3u
 │   │   └── deportes.m3u
-│   └── index.m3u            # ✅ Lista maestra IPTV que incluye a las otras
-├── public/                  # Carpeta para el sitio web (va a GitHub Pages)
-│   ├── index.html           # ✅ Página web principal con diseño interactivo
-│   ├── styles.css
-│   └── app.js
+│   └── index.m3u
 └── README.md
 ```
